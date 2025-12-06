@@ -96,6 +96,7 @@ export class AppComponent {
     "UI": [
       { id: "bootstrap", label: "Bootstrap 5", category: "ui" },
       { id: "tailwind", label: "Tailwind CSS", category: "ui" },
+      { id: "clear_frontend", label: "Clear Frontend Design", category: "ui" },
     ],
     "DevOps": [
       { id: "docker", label: "Docker Configuration", category: "devops" },

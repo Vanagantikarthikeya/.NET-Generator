@@ -97,6 +97,20 @@ export class GeminiService {
 
   async generateProject(prompt: string, framework: Framework, features: Feature[]): Promise<GeneratedProject> {
     const featureList = features.map(f => f.label).join(', ');
+    const hasClearFrontend = features.some(f => f.id === 'clear_frontend');
+    
+    const frontendInstruction = hasClearFrontend
+      ? `
+      - **Frontend Design:** The user has requested a "Clear Frontend Design". Generate a visually appealing, modern, and user-friendly frontend using HTML and Tailwind CSS (if no other UI framework is specified). This should include:
+        - A clean layout with logical structure, good spacing, and typography.
+        - A professional and consistent color scheme.
+        - Interactive elements with clear states (hover, focus, active).
+        - Ensure the generated HTML/CSHTML files are complete, renderable, and showcase a polished design relevant to the project's purpose. The UI should look professional, not like a barebones wireframe.
+`
+      : `
+      - **Frontend Design:** Generate basic, functional HTML/CSHTML for the required views. The focus is on functionality, not aesthetics, unless specified otherwise in the main prompt.
+`;
+
     const fullPrompt = `
       You are an expert .NET architect specializing in ASP.NET Core. Your task is to generate a complete, production-ready ASP.NET Core project based on the user's requirements.
 
@@ -104,6 +118,7 @@ export class GeminiService {
       - **User Prompt:** "${prompt}"
       - **Framework:** "${framework.label}"
       - **Selected Features:** ${featureList.length > 0 ? featureList : 'None'}
+      ${frontendInstruction}
 
       **Instructions:**
       1.  **Generate a file structure:** Create a complete set of files for the project. This includes .csproj, Program.cs, Startup.cs (if applicable), appsettings.json, controllers, models, views/pages, services, etc.

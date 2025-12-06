@@ -1,0 +1,224 @@
+
+<div [class]="isDarkMode() ? 'dark' : ''">
+  <div class="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans transition-colors duration-300">
+    <!-- Header -->
+    <header class="sticky top-0 z-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center space-x-2">
+            <svg class="h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">.NET Builder <span class="text-blue-500">AI</span></h1>
+          </div>
+          <div class="flex items-center gap-4">
+              @if (generationState() === 'completed') {
+                  <button (click)="startNewProject()"
+                  class="py-2 px-4 text-sm font-semibold text-white rounded-lg transition-all duration-300 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-md">
+                  Start New Project
+                </button>
+              }
+              <button (click)="toggleDarkMode()" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                @if (isDarkMode()) {
+                  <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                } @else {
+                  <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+                }
+              </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+      @switch (generationState()) {
+        @case ('configuring') {
+          <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-4xl mx-auto space-y-8 animate-fade-in">
+              <!-- 1. Prompt -->
+              <div>
+                <label for="prompt" class="block text-xl font-semibold mb-2 text-slate-900 dark:text-white">1. Describe Your .NET Project</label>
+                <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">Be descriptive. What should it do? What are the key features? e.g., "A simple blog application with posts and comments".</p>
+                <textarea id="prompt" name="prompt" rows="4" [ngModel]="prompt()" (ngModelChange)="prompt.set($event)"
+                          class="w-full p-4 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                          placeholder="e.g., A web API for a to-do list with user authentication"></textarea>
+              </div>
+
+              <!-- 2. Framework -->
+              <div>
+                <label class="block text-xl font-semibold mb-4 text-slate-900 dark:text-white">2. Select a Framework</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  @for (fw of AVAILABLE_FRAMEWORKS; track fw.value) {
+                    <button (click)="selectFramework(fw)" [class]="'p-6 text-left border rounded-lg transition-all duration-200 ' + (selectedFramework()?.value === fw.value ? 'bg-blue-600 border-blue-600 text-white shadow-lg scale-105' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 hover:border-blue-500 hover:dark:border-blue-500 hover:shadow-md')">
+                      <h3 class="font-bold text-lg">{{ fw.label }}</h3>
+                      <p class="text-sm mt-1" [class]="selectedFramework()?.value === fw.value ? 'text-blue-100' : 'text-slate-600 dark:text-slate-400'">{{ fw.description }}</p>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- 3. Features -->
+              <div>
+                <label class="block text-xl font-semibold mb-4 text-slate-900 dark:text-white">3. Add Features (Optional)</label>
+                <div class="space-y-6">
+                  @for (category of featureCategories(); track category) {
+                    <div>
+                      <h4 class="font-semibold text-slate-700 dark:text-slate-300 mb-3">{{ category }}</h4>
+                      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        @for(feature of AVAILABLE_FEATURES[category]; track feature.id) {
+                          <label [for]="feature.id" class="flex items-center p-3 space-x-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md cursor-pointer hover:border-blue-500 transition-colors">
+                            <input type="checkbox" [id]="feature.id" [checked]="isFeatureSelected(feature.id)" (change)="toggleFeature(feature.id)" class="h-4 w-4 rounded border-slate-400 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm font-medium">{{ feature.label }}</span>
+                          </label>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- 4. Generate -->
+              <div class="pt-6 border-t border-slate-200 dark:border-slate-800">
+                <button (click)="handleGenerateProject()" [disabled]="isGenerationDisabled()"
+                        [class]="'w-full py-4 px-6 text-lg font-bold text-white rounded-lg transition-all duration-300 shadow-lg flex items-center justify-center gap-3 ' + (isGenerationDisabled() ? 'bg-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl transform hover:-translate-y-1')">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="m12 12-2 2 2 2"/><path d="m16 12 2 2-2 2"/></svg>
+                  Generate Project
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+
+        @case ('generating') {
+          <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-6xl mx-auto animate-fade-in">
+              <div class="flex flex-col lg:flex-row gap-8">
+                <!-- AI Team Panel -->
+                <div class="lg:w-1/3 space-y-4">
+                  <h2 class="text-2xl font-bold text-slate-900 dark:text-white">AI Development Team</h2>
+                  <div class="space-y-3">
+                    @for (agent of AI_AGENTS; track agent.id) {
+                      <div [class]="'p-4 rounded-lg flex items-center gap-4 border-l-4 transition-all duration-500 ' + (activeAgents().includes(agent.id) ? 'border-blue-500 bg-white dark:bg-slate-800 shadow-md' : 'border-transparent bg-slate-100 dark:bg-slate-800/50')">
+                        <div [class]="'w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br ' + agent.gradient">
+                            @if (activeAgents().includes(agent.id)) {
+                              <div class="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                            } @else {
+                              <svg class="w-6 h-6 text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            }
+                        </div>
+                        <div>
+                          <h3 class="font-semibold text-slate-900 dark:text-white">{{ agent.name }}</h3>
+                          <p class="text-sm text-slate-500 dark:text-slate-400">{{ agent.role }}</p>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                  <!-- Agent Logs -->
+                  <div class="bg-slate-900 text-white p-4 rounded-lg h-64 overflow-y-auto mt-4">
+                      <h3 class="text-lg font-semibold mb-2">Agent Activity</h3>
+                      <ul class="space-y-2 text-sm">
+                        @for (log of agentLogs(); track $index) {
+                          <li class="flex gap-2 font-mono">
+                            <span class="text-slate-400">[{{ log.agent.name }}]:</span>
+                            <span class="text-slate-200">{{ log.message }}</span>
+                          </li>
+                        }
+                      </ul>
+                  </div>
+                </div>
+                <!-- Code Placeholder -->
+                <div class="lg:w-2/3">
+                  <div class="h-[600px] bg-slate-900 rounded-lg flex flex-col items-center justify-center border border-slate-700">
+                    <svg class="h-16 w-16 text-slate-600 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="mt-4 text-lg text-slate-400">Generating your project, please wait...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+        
+        @case ('completed') {
+          <div class="flex h-[calc(100vh-4rem)] animate-fade-in">
+            <!-- Left Panel: Code Assistant -->
+            <div class="w-[30%] max-w-md flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700">
+              <div class="p-4 border-b border-slate-200 dark:border-slate-700">
+                <h2 class="text-xl font-bold">Code Assistant</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Request changes or new features.</p>
+              </div>
+              <div #chatContainer class="flex-grow p-4 space-y-4 overflow-y-auto">
+                @for (chat of chatHistory(); track $index) {
+                  <div class="flex" [class.justify-end]="chat.role === 'user'">
+                    <div class="p-3 rounded-lg max-w-sm" [class]="chat.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-200 dark:bg-slate-700'">
+                      <p class="text-sm">{{ chat.content }}</p>
+                    </div>
+                  </div>
+                }
+              </div>
+              <div class="p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <div class="relative">
+                  <textarea [ngModel]="assistantPrompt()" (ngModelChange)="assistantPrompt.set($event)" (keydown.enter)="handleModificationRequest()"
+                            [disabled]="isModifying()"
+                            class="w-full p-3 pr-12 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                            placeholder="e.g., 'Add a new property to the model'"></textarea>
+                  <button (click)="handleModificationRequest()" [disabled]="isModifying() || assistantPrompt().trim() === ''"
+                          class="absolute right-2 top-2 p-2 rounded-full text-white transition-colors"
+                          [class]="isModifying() || assistantPrompt().trim() === '' ? 'bg-slate-400 dark:bg-slate-600' : 'bg-blue-600 hover:bg-blue-700'">
+                      @if(isModifying()) {
+                        <svg class="h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      } @else {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="m22 2-11 11"/></svg>
+                      }
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Panel: Preview and Code -->
+            <div class="flex-grow flex flex-col bg-slate-50 dark:bg-slate-900">
+              <!-- Top: Live Preview -->
+              <div class="h-1/2 flex flex-col border-b border-slate-200 dark:border-slate-700">
+                <div class="flex-shrink-0 p-2 flex items-center justify-between bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                  <h3 class="text-sm font-semibold uppercase text-slate-600 dark:text-slate-300 px-2">Live Preview</h3>
+                  @if(previewableFiles().length > 0) {
+                    <select [ngModel]="selectedPreviewFile()" (ngModelChange)="selectedPreviewFile.set($event)" class="text-sm bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md p-1">
+                       @for(file of previewableFiles(); track file) {
+                         <option [value]="file">{{ file }}</option>
+                       }
+                    </select>
+                  }
+                </div>
+                <div class="flex-grow bg-white dark:bg-transparent">
+                    <iframe title="Live Preview" class="w-full h-full border-0" [srcdoc]="safePreviewContent()"></iframe>
+                </div>
+              </div>
+
+              <!-- Bottom: Code Viewer -->
+              <div class="h-1/2 overflow-hidden">
+                @if (generatedProject(); as project) {
+                  <app-code-viewer [project]="project" />
+                }
+              </div>
+            </div>
+          </div>
+        }
+
+        @case ('error') {
+          <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <div class="max-w-2xl mx-auto text-center animate-fade-in">
+              <div class="bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg relative" role="alert">
+                  <strong class="font-bold">Generation Failed!</strong>
+                  <span class="block sm:inline ml-2">{{ errorMessage() }}</span>
+              </div>
+              <button (click)="retry()" class="mt-6 py-2 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors">
+                  Try Again
+              </button>
+            </div>
+          </div>
+        }
+      }
+    </main>
+  </div>
+</div>

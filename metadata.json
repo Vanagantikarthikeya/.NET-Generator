@@ -1,0 +1,5 @@
+{
+  "name": ".NET Builder AI",
+  "description": "An AI-powered web application that generates complete, production-ready ASP.NET Core projects based on natural language prompts. Describe your project, select frameworks, and let the AI generate the entire codebase.",
+  "requestFramePermissions": []
+}

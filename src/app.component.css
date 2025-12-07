@@ -14,3 +14,11 @@
     transform: translateY(0);
   }
 }
+
+/* For multi-line truncation in project cards */
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}

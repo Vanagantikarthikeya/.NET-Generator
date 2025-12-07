@@ -12,6 +12,10 @@ export interface Feature {
 }
 
 export interface GeneratedProject {
+  id: string;
+  name: string;
+  prompt: string;
+  framework: Framework;
   files: { [key: string]: string };
   dependencies: string[];
   explanation: string;

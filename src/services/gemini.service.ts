@@ -19,7 +19,7 @@ export class GeminiService {
     this.ai = new GoogleGenAI({ apiKey });
   }
 
-  private async callGenerativeModel(fullPrompt: string): Promise<GeneratedProject> {
+  private async callGenerativeModel(fullPrompt: string, originalPrompt: string, framework: Framework): Promise<GeneratedProject> {
       const response = await this.ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: fullPrompt,
@@ -81,10 +81,18 @@ export class GeminiService {
         }
         return acc;
       }, {} as { [key: string]: string });
+      
+      const projectName = originalPrompt.length > 50 ? originalPrompt.substring(0, 47) + '...' : originalPrompt;
 
       const generatedProject: GeneratedProject = {
-        ...rawResponse,
+        id: new Date().toISOString() + Math.random(),
+        name: projectName,
+        prompt: originalPrompt,
+        framework: framework,
         files: filesDictionary,
+        dependencies: rawResponse.dependencies,
+        explanation: rawResponse.explanation,
+        build_commands: rawResponse.build_commands,
       };
       
       // Basic validation
@@ -100,19 +108,11 @@ export class GeminiService {
     const hasClearFrontend = features.some(f => f.id === 'clear_frontend');
     
     const frontendInstruction = hasClearFrontend
-      ? `
-      - **Frontend Design:** The user has requested a "Clear Frontend Design". Generate a visually appealing, modern, and user-friendly frontend using HTML and Tailwind CSS (if no other UI framework is specified). This should include:
-        - A clean layout with logical structure, good spacing, and typography.
-        - A professional and consistent color scheme.
-        - Interactive elements with clear states (hover, focus, active).
-        - Ensure the generated HTML/CSHTML files are complete, renderable, and showcase a polished design relevant to the project's purpose. The UI should look professional, not like a barebones wireframe.
-`
-      : `
-      - **Frontend Design:** Generate basic, functional HTML/CSHTML for the required views. The focus is on functionality, not aesthetics, unless specified otherwise in the main prompt.
-`;
+      ? `- **Frontend Design:** The user has requested a "Clear Frontend Design". Generate a visually appealing, modern, and user-friendly frontend using HTML and Tailwind CSS (if no other UI framework is specified). This should include a clean layout, a professional color scheme, and interactive elements. The UI should look professional, not like a barebones wireframe.`
+      : `- **Frontend Design:** Generate basic, functional HTML/CSHTML for the required views. The focus is on functionality.`;
 
     const fullPrompt = `
-      You are an expert .NET architect specializing in ASP.NET Core. Your task is to generate a complete, production-ready ASP.NET Core project based on the user's requirements.
+      You are an expert .NET architect. Your task is to generate a complete, production-ready ASP.NET Core project.
 
       **Project Requirements:**
       - **User Prompt:** "${prompt}"
@@ -121,16 +121,15 @@ export class GeminiService {
       ${frontendInstruction}
 
       **Instructions:**
-      1.  **Generate a file structure:** Create a complete set of files for the project. This includes .csproj, Program.cs, Startup.cs (if applicable), appsettings.json, controllers, models, views/pages, services, etc.
-      2.  **Implement the logic:** Write the code for each file to fulfill the user's prompt and selected features.
-      3.  **Include Dependencies:** List all necessary NuGet packages.
-      4.  **Provide Build Commands:** List the CLI commands to build and run the project (e.g., 'dotnet restore', 'dotnet build', 'dotnet run').
-      5.  **Write an Explanation:** Briefly explain the project structure and how to get started.
-      6.  **Format:** Return the entire output as a single, valid JSON object matching the provided schema. Do not include any markdown formatting like \`\`\`json.
+      1.  Generate a complete file structure and the code for each file.
+      2.  List all necessary NuGet packages.
+      3.  Provide the CLI commands to build and run the project.
+      4.  Briefly explain the project structure.
+      5.  Return the entire output as a single, valid JSON object matching the provided schema. Do not include any markdown formatting like \`\`\`json.
     `;
 
     try {
-      return await this.callGenerativeModel(fullPrompt);
+      return await this.callGenerativeModel(fullPrompt, prompt, framework);
     } catch (error) {
       console.error("Error calling Gemini API for generation:", error);
       throw new Error("Failed to generate project. The AI model may be overloaded or the request was invalid. Please check your prompt and try again.");
@@ -138,6 +137,9 @@ export class GeminiService {
   }
 
   async modifyProject(prompt: string, existingProject: GeneratedProject): Promise<GeneratedProject> {
+    // Prune large, unnecessary fields before sending back to the AI
+    const slimProject = { ...existingProject, prompt: undefined, framework: undefined };
+    
     const fullPrompt = `
       You are an expert AI .NET developer. You will be given an existing .NET project as a JSON object and a user request for modification.
       Your task is to apply the requested changes and return the *entire*, updated project structure in the exact same JSON format.
@@ -147,13 +149,21 @@ export class GeminiService {
       "${prompt}"
 
       **Existing Project JSON:**
-      ${JSON.stringify(existingProject)}
+      ${JSON.stringify(slimProject)}
 
-      Now, provide the complete and updated project as a single, valid JSON object matching the required schema. Do not add any commentary, explanations, or markdown formatting outside of the JSON structure itself. The 'explanation' field in the JSON should describe the changes you made.
+      Now, provide the complete and updated project as a single, valid JSON object matching the required schema. The 'explanation' field in the JSON should describe the changes you made.
     `;
     
     try {
-        return await this.callGenerativeModel(fullPrompt);
+        const modifiedCore = await this.callGenerativeModel(fullPrompt, existingProject.prompt, existingProject.framework);
+        // Preserve original ID and other metadata
+        return {
+          ...existingProject,
+          files: modifiedCore.files,
+          dependencies: modifiedCore.dependencies,
+          explanation: modifiedCore.explanation,
+          build_commands: modifiedCore.build_commands,
+        };
     } catch (error) {
         console.error("Error calling Gemini API for modification:", error);
         throw new Error("Failed to modify project. The AI model may be overloaded or the request was invalid.");
